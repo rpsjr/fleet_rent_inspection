@@ -123,3 +123,4 @@ class EfrotasConfig(models.Model):
                 _("Falha ao cadastrar Webhook no Autorizador e-Frotas: %s")
                 % str(exc)
             )
+

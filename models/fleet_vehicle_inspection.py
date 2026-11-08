@@ -19,6 +19,11 @@ class FleetVehicleInspection(models.Model):
         "cancel": [("readonly", True)],
     }
 
+    inspection_template_id = fields.Many2one(
+        "fleet.vehicle.inspection.template",
+        states=READONLY_STATES,
+    )
+
     rent_id = fields.Many2one(
         "fleet.rent",
         string="Locação",
@@ -163,13 +168,16 @@ class FleetVehicleInspection(models.Model):
         pdf_b64 = base64.b64encode(pdf_bytes).decode("ascii")
         pdf_sha256 = hashlib.sha256(pdf_bytes).hexdigest()
 
-        self.sudo().write(
-            {
-                "unsigned_laudo_pdf": pdf_b64,
-                "unsigned_laudo_hash": pdf_sha256,
-                "unsigned_laudo_generated_at": fields.Datetime.now(),
-            }
-        )
+        if self.state == "draft" or not self.unsigned_laudo_pdf:
+            self.sudo().with_context(
+                allow_confirmed_inspection_system_write=True
+            ).write(
+                {
+                    "unsigned_laudo_pdf": pdf_b64,
+                    "unsigned_laudo_hash": pdf_sha256,
+                    "unsigned_laudo_generated_at": fields.Datetime.now(),
+                }
+            )
 
         placa = (
             (self.vehicle_id.license_plate or self.vehicle_id.name or "")
@@ -241,13 +249,22 @@ class FleetVehicleInspection(models.Model):
         try:
             config = vehicle._get_efrotas_config()
             client = config.get_client(vehicle_id=vehicle.id)
-            cnpj_possuidor = re.sub(
+            company_cnpj = re.sub(
                 r"\D",
                 "",
-                config.cnpj_filial
-                or config.cnpj
-                or (vehicle.company_id.partner_id.l10n_br_cnpj_cpf or ""),
+                (
+                    vehicle.company_id.l10n_br_cnpj_cpf
+                    or vehicle.company_id.partner_id.l10n_br_cnpj_cpf
+                    or self.env.company.l10n_br_cnpj_cpf
+                    or self.env.company.partner_id.l10n_br_cnpj_cpf
+                    or ""
+                ),
             )
+            config_cnpj = re.sub(
+                r"\D", "", config.cnpj_filial or config.cnpj or ""
+            )
+            # Prioriza o CNPJ da empresa em res.company (ex: 40772248000195)
+            cnpj_possuidor = company_cnpj or config_cnpj
             payload = {
                 "placaVeiculo": placa,
                 "cpfPrincipalCondutor": cpf_condutor,
@@ -359,6 +376,10 @@ class FleetVehicleInspection(models.Model):
         anexa o documento, define o locatário como condutor no ERP e aciona o SENATRAN.
         """
         self.ensure_one()
+        if self.state != "draft":
+            raise UserError(
+                _("Vistoria confirmada não pode ser modificada.")
+            )
         signer_info = signer_info or {}
 
         check = self.action_check_all_items_inspected()
@@ -523,3 +544,91 @@ class FleetVehicleInspection(models.Model):
             "erp_driver_registered": erp_driver_ok,
             "senatran": senatran_res,
         }
+
+    def button_cancel(self):
+        if any(rec.state == "confirmed" for rec in self):
+            raise UserError(
+                _("Vistoria confirmada não pode ser cancelada ou modificada.")
+            )
+        return super(FleetVehicleInspection, self).button_cancel()
+
+    def write(self, vals):
+        allowed_system_fields = {
+            "senatran_driver_indicated",
+            "senatran_status_message",
+            "rent_id",
+            "message_main_attachment_id",
+        }
+        if not self.env.context.get("allow_confirmed_inspection_system_write"):
+            if any(rec.state == "confirmed" for rec in self):
+                disallowed = set(vals.keys()) - allowed_system_fields
+                if disallowed:
+                    raise UserError(
+                        _("Vistoria confirmada não pode ser modificada.")
+                    )
+        return super(FleetVehicleInspection, self).write(vals)
+
+    def unlink(self):
+        if any(rec.state == "confirmed" for rec in self):
+            raise UserError(
+                _("Vistoria confirmada não pode ser excluída.")
+            )
+        return super(FleetVehicleInspection, self).unlink()
+
+
+class FleetVehicleInspectionLine(models.Model):
+    _inherit = "fleet.vehicle.inspection.line"
+
+    result_description = fields.Char(
+        states={
+            "confirmed": [("readonly", True)],
+            "cancel": [("readonly", True)],
+        }
+    )
+
+    def action_item_success(self):
+        if any(line.inspection_id.state == "confirmed" for line in self):
+            raise UserError(
+                _("Vistoria confirmada não pode ser modificada.")
+            )
+        return super(FleetVehicleInspectionLine, self).action_item_success()
+
+    def action_item_failure(self):
+        if any(line.inspection_id.state == "confirmed" for line in self):
+            raise UserError(
+                _("Vistoria confirmada não pode ser modificada.")
+            )
+        return super(FleetVehicleInspectionLine, self).action_item_failure()
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        insp_ids = [
+            v.get("inspection_id") for v in vals_list if v.get("inspection_id")
+        ]
+        if insp_ids:
+            confirmed = (
+                self.env["fleet.vehicle.inspection"]
+                .sudo()
+                .search_count(
+                    [("id", "in", insp_ids), ("state", "=", "confirmed")]
+                )
+            )
+            if confirmed:
+                raise UserError(
+                    _("Vistoria confirmada não pode ser modificada.")
+                )
+        return super(FleetVehicleInspectionLine, self).create(vals_list)
+
+    def write(self, vals):
+        if any(line.inspection_id.state == "confirmed" for line in self):
+            raise UserError(
+                _("Vistoria confirmada não pode ser modificada.")
+            )
+        return super(FleetVehicleInspectionLine, self).write(vals)
+
+    def unlink(self):
+        if any(line.inspection_id.state == "confirmed" for line in self):
+            raise UserError(
+                _("Vistoria confirmada não pode ser modificada.")
+            )
+        return super(FleetVehicleInspectionLine, self).unlink()

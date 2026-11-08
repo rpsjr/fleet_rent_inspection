@@ -12,6 +12,9 @@
             ref="fleet_vehicle_inspection.fleet_vehicle_inspection_form_view"
         />
         <field name="arch" type="xml">
+            <xpath expr="//header/button[@name='button_cancel']" position="attributes">
+                <attribute name="states">draft</attribute>
+            </xpath>
             <xpath expr="//field[@name='inspected_by']" position="after">
                 <field name="rent_id" />
             </xpath>
