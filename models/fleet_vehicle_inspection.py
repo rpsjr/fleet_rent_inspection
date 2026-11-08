@@ -402,12 +402,40 @@ class FleetVehicleInspection(models.Model):
                 else f"Laudo_de_Vistoria_{self.id}_assinado.pdf"
             )
 
-        signer_name = signer_info.get("signer_name") or (
-            self.inspected_by.name if self.inspected_by else ""
+        driver_partner = self.inspected_by or (
+            self.rent_id.tenant_id if self.rent_id else False
         )
-        signer_cpf = signer_info.get("signer_cpf") or (
-            self.inspected_by.l10n_br_cnpj_cpf if self.inspected_by else ""
+        if not driver_partner:
+            raise UserError(
+                _("Nenhum locatário está vinculado a esta vistoria para validação da assinatura.")
+            )
+
+        tenant_cpf = re.sub(
+            r"\D", "", driver_partner.l10n_br_cnpj_cpf or ""
         )
+        signer_cpf_raw = signer_info.get("signer_cpf") or ""
+        signer_cpf_clean = re.sub(r"\D", "", signer_cpf_raw)
+        signer_name = signer_info.get("signer_name") or driver_partner.name or ""
+
+        if not tenant_cpf:
+            raise UserError(
+                _("O locatário vinculado à vistoria (%s) não possui CPF cadastrado.")
+                % (driver_partner.name or "")
+            )
+        if not signer_cpf_clean or signer_cpf_clean != tenant_cpf:
+            raise UserError(
+                _(
+                    "O assinante do documento (%s - CPF %s) não é o locatário da vistoria (%s - CPF %s). "
+                    "O Laudo de Vistória deve ser assinado pelo próprio locatário."
+                )
+                % (
+                    signer_name or "-",
+                    signer_cpf_clean or _("não identificado"),
+                    driver_partner.name or "-",
+                    tenant_cpf,
+                )
+            )
+        signer_cpf = signer_cpf_clean
 
         # 1. Atualiza campos do laudo assinado e confirma a vistoria
         self.sudo().write(
