@@ -62,7 +62,7 @@ class FleetRent(models.Model):
             .sudo()
             .get_param(
                 "vehicle_inspection_app.base_url",
-                "https://vistoria.babur.com.br",
+                "https://vehicle-inspection-app-7bxs4vqwaq-uc.a.run.app",
             )
         )
         inspection_url = f"{app_base_url.rstrip('/')}/inspection/{inspection.id}"
