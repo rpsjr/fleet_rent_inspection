@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Form View de fleet.vehicle.inspection: adiciona campo rent_id e aba/campos de Laudo gov.br e SENATRAN -->
+    <record
+        id="fleet_vehicle_inspection_form_view_rent_inherit"
+        model="ir.ui.view"
+    >
+        <field name="name">fleet.vehicle.inspection.form.rent.inherit</field>
+        <field name="model">fleet.vehicle.inspection</field>
+        <field
+            name="inherit_id"
+            ref="fleet_vehicle_inspection.fleet_vehicle_inspection_form_view"
+        />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='inspected_by']" position="after">
+                <field name="rent_id" />
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Laudo gov.br &amp; SENATRAN" name="govbr_senatran_info">
+                    <group>
+                        <group string="Laudo de Vistória e Assinatura gov.br">
+                            <field name="unsigned_laudo_generated_at" />
+                            <field name="unsigned_laudo_hash" />
+                            <field name="govbr_signature_verified" />
+                            <field name="govbr_signer_name" />
+                            <field name="govbr_signer_cpf" />
+                            <field name="govbr_signed_date" />
+                            <field
+                                name="signed_laudo_pdf"
+                                filename="signed_laudo_filename"
+                            />
+                            <field name="signed_laudo_filename" invisible="1" />
+                        </group>
+                        <group string="Registro de Condutor (ERP / SENATRAN)">
+                            <field name="senatran_driver_indicated" />
+                            <field name="senatran_status_message" />
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Tree View de fleet.vehicle.inspection: adiciona coluna rent_id -->
+    <record
+        id="fleet_vehicle_inspection_tree_view_rent_inherit"
+        model="ir.ui.view"
+    >
+        <field name="name">fleet.vehicle.inspection.tree.rent.inherit</field>
+        <field name="model">fleet.vehicle.inspection</field>
+        <field
+            name="inherit_id"
+            ref="fleet_vehicle_inspection.fleet_vehicle_inspection_tree_view"
+        />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='inspected_by']" position="after">
+                <field name="rent_id" optional="show" />
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Search View de fleet.vehicle.inspection: permite buscar e agrupar por rent_id -->
+    <record
+        id="fleet_vehicle_inspection_search_view_rent_inherit"
+        model="ir.ui.view"
+    >
+        <field name="name">fleet.vehicle.inspection.search.rent.inherit</field>
+        <field name="model">fleet.vehicle.inspection</field>
+        <field
+            name="inherit_id"
+            ref="fleet_vehicle_inspection.fleet_vehicle_inspection_search_view"
+        />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='inspected_by']" position="after">
+                <field name="rent_id" />
+            </xpath>
+            <xpath expr="//group" position="inside">
+                <filter
+                    string="Locação"
+                    name="group_by_rent_id"
+                    domain="[]"
+                    context="{'group_by': 'rent_id'}"
+                />
+            </xpath>
+        </field>
+    </record>
+</odoo>

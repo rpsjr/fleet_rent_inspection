@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <data noupdate="1">
+        <!-- Template QWeb para o Laudo de Vistória filtrando apenas anexos de imagem (mimetype image/%) -->
+        <template id="report_fleet_vehicle_inspection_laudo_document">
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <t t-call="web.external_layout">
+                        <style>
+                            .report-header {
+                                background-color: #f2f2f2;
+                                margin-bottom: 20px;
+                                padding: 15px;
+                                border-radius: 4px;
+                            }
+                            .inspection-table {
+                                position: relative;
+                                width: 100%;
+                                border-collapse: collapse;
+                            }
+                            .inspection-table th, .inspection-table td {
+                                position: relative;
+                                border: 1px solid #ddd;
+                                padding: 8px;
+                                text-align: left;
+                            }
+                        </style>
+                        <div class="page">
+                            <h2 class="mb-3">Laudo de Vistória Veicular</h2>
+                            <div class="report-header">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div><strong>Inspeção:</strong> <span t-field="o.name"/></div>
+                                        <div><strong>Veículo:</strong> <span t-field="o.vehicle_id.name"/></div>
+                                        <div><strong>Chassi:</strong> <span t-field="o.vehicle_id.vin_sn"/></div>
+                                        <div><strong>Hodômetro:</strong> <span t-field="o.odometer"/> <span t-field="o.odometer_unit"/></div>
+                                        <div t-if="o.rent_id"><strong>Locação:</strong> <span t-field="o.rent_id.name"/></div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div><strong>Data da inspeção:</strong> <span t-field="o.date_inspected"/></div>
+                                        <div><strong>Inspecionado por:</strong> <span t-field="o.inspected_by.name"/></div>
+                                        <div><strong>CPF/CNPJ:</strong> <span t-field="o.inspected_by.l10n_br_cnpj_cpf"/></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <table class="inspection-table">
+                                <thead>
+                                    <tr>
+                                        <th>Item inspecionado</th>
+                                        <th>Resultado</th>
+                                        <th>Descrição</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="o.inspection_line_ids" t-as="line">
+                                        <tr>
+                                            <td><span t-field="line.inspection_item_id.name"/></td>
+                                            <td>
+                                                <t t-if="line.result == 'success'">Conforme / Sucesso</t>
+                                                <t t-elif="line.result == 'failure'">Avaria / Falha</t>
+                                                <t t-else=""><span t-field="line.result"/></t>
+                                            </td>
+                                            <td><span t-field="line.result_description"/></td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+
+                            <div class="mt-3" t-if="o.note">
+                                <h4>Informações adicionais</h4>
+                                <div t-field="o.note"/>
+                            </div>
+
+                            <div class="image-attachments mt-3">
+                                <h4>Imagens anexadas</h4>
+                                <t t-foreach="o.get_image_attachments()" t-as="attachment">
+                                    <div style="page-break-inside: avoid; margin-bottom: 12px;">
+                                        <p class="mb-1"><small><span t-esc="attachment.name"/></small></p>
+                                        <img t-att-src="'data:' + (attachment.mimetype or 'image/jpeg') + ';base64,' + attachment.datas.decode('utf-8')"
+                                             style="max-width: 100%; max-height: 480px; height: auto; margin-bottom: 10px;"/>
+                                    </div>
+                                </t>
+                            </div>
+
+                            <div class="signature-spaces mt-4" style="page-break-inside: avoid;">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <h4>Assinatura do Locatário / Condutor:</h4>
+                                        <br/><br/>
+                                        <hr style="background-color: black; height: 1px; border: none; width: 90%; margin-left: 0;"/>
+                                        <div><small><span t-field="o.inspected_by.name"/> (<span t-field="o.inspected_by.l10n_br_cnpj_cpf"/>)</small></div>
+                                    </div>
+                                    <div class="col-6">
+                                        <h4>Assinatura da Locadora:</h4>
+                                        <br/><br/>
+                                        <hr style="background-color: black; height: 1px; border: none; width: 90%; margin-left: 0;"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </t>
+            </t>
+        </template>
+
+        <report
+            id="action_report_fleet_vehicle_inspection_laudo"
+            model="fleet.vehicle.inspection"
+            string="Laudo de Vistória"
+            report_type="qweb-pdf"
+            name="fleet_rent_inspection.report_fleet_vehicle_inspection_laudo_document"
+            file="fleet_rent_inspection.report_fleet_vehicle_inspection_laudo_document"
+            print_report_name="'Laudo de Vistória - %s' % (object.vehicle_id.license_plate or object.name)"
+        />
+    </data>
+</odoo>

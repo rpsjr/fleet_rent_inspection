@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <data noupdate="1">
+        <!-- Garante a existência do Modelo de Inspeção "Abertura de locação" caso o banco ainda não o possua -->
+        <record
+            id="inspection_template_abertura_locacao"
+            model="fleet.vehicle.inspection.template"
+        >
+            <field name="name">Abertura de locação</field>
+            <field name="note">Vistoria de abertura de locação realizada pelo locatário.</field>
+        </record>
+    </data>
+</odoo>

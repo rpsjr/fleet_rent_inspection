@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Form View de fleet.rent: adiciona botão "Gerar Vistoria", smart button de Vistorias e campo inspection_id -->
+    <record id="view_fleet_rent_form_inspection_inherit" model="ir.ui.view">
+        <field name="name">view.fleet.rent.form.inspection.inherit</field>
+        <field name="model">fleet.rent</field>
+        <field name="inherit_id" ref="fleet_rent_ext.view_fleet_rent_form_ext" />
+        <field name="arch" type="xml">
+            <xpath expr="//header/button[@name='action_schedule_inspection']" position="after">
+                <button
+                    name="action_generate_inspection"
+                    string="Gerar Vistoria"
+                    type="object"
+                    states="draft,proposal_sent,crlv_shared,waiting_signature,contract_signed,waiting_inspection"
+                    class="oe_highlight"
+                    icon="fa-check-square-o"
+                />
+            </xpath>
+            <xpath expr="//sheet/div[hasclass('oe_button_box')]" position="inside">
+                <button
+                    name="action_view_inspections"
+                    type="object"
+                    class="oe_stat_button"
+                    icon="fa-car"
+                    attrs="{'invisible': [('inspection_count', '=', 0)]}"
+                >
+                    <field
+                        name="inspection_count"
+                        widget="statinfo"
+                        string="Vistorias"
+                    />
+                </button>
+            </xpath>
+            <xpath expr="//field[@name='inspection_scheduled_date']" position="before">
+                <field name="inspection_id" />
+            </xpath>
+            <xpath expr="//page[@name='bpmn_process']" position="inside">
+                <separator string="Vistorias Vinculadas" />
+                <field
+                    name="inspection_ids"
+                    context="{'default_rent_id': active_id, 'default_vehicle_id': vehicle_id, 'default_inspected_by': tenant_id}"
+                />
+            </xpath>
+        </field>
+    </record>
+</odoo>
