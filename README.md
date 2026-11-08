@@ -19,3 +19,4 @@ Módulo Odoo 13 para integração entre:
    - Confirma a inspeção (`state = 'confirmed'`).
    - Registra o locatário como condutor do veículo no ERP (`fleet.vehicle.driver_id`).
    - Envia a indicação de Principal Condutor para o SENATRAN via API Transacional do e-Frotas (`/transacional/v1/principalcondutor/indicacoes/inserir`).
+

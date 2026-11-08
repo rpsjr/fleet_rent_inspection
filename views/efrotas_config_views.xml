@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_efrotas_config_form_webhook_inherit" model="ir.ui.view">
+        <field name="name">efrotas.config.form.webhook.inherit</field>
+        <field name="model">efrotas.config</field>
+        <field
+            name="inherit_id"
+            ref="l10_br_fleet_efrotas.view_efrotas_config_form"
+        />
+        <field name="arch" type="xml">
+            <xpath expr="//header/button[@name='action_test_connection']" position="after">
+                <button
+                    name="action_register_webhook"
+                    string="Cadastrar Webhook e Eventos no SENATRAN"
+                    type="object"
+                    class="oe_highlight"
+                    icon="fa-bell"
+                />
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Webhook / Autorizador de Eventos" name="webhook_autorizador">
+                    <group>
+                        <group string="Endpoint de Entrega de Eventos">
+                            <field name="webhook_url" />
+                            <field name="webhook_header" />
+                            <field name="webhook_token" />
+                        </group>
+                        <group string="Status no Autorizador e-Frotas">
+                            <field name="webhook_registered" />
+                            <field name="webhook_last_sync" />
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

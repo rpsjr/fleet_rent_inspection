@@ -21,6 +21,7 @@
     "data": [
         "security/ir.model.access.csv",
         "data/inspection_template_data.xml",
+        "views/efrotas_config_views.xml",
         "views/fleet_vehicle_inspection_views.xml",
         "views/fleet_rent_views.xml",
         "report/fleet_vehicle_inspection_report.xml",

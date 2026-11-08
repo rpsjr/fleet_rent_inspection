@@ -253,7 +253,24 @@ class FleetVehicleInspection(models.Model):
                 "cpfPrincipalCondutor": cpf_condutor,
                 "identificacaoPossuidor": cnpj_possuidor,
             }
-            res = client.inserir_indicacao_principal_condutor(payload)
+            try:
+                res = client.inserir_indicacao_principal_condutor(payload)
+            except Exception as first_exc:
+                err_txt = str(first_exc).lower()
+                if (
+                    "webhook" in err_txt
+                    or "entrega de eventos" in err_txt
+                    or "autorizador" in err_txt
+                    or "evento obrigatório" in err_txt
+                    or "evento obrigatorio" in err_txt
+                ):
+                    _logger.info(
+                        "Cadastrando automaticamente webhook e eventos no Autorizador e-Frotas antes de reenviar indicação de condutor..."
+                    )
+                    config.sudo().ensure_webhook_and_events_registered()
+                    res = client.inserir_indicacao_principal_condutor(payload)
+                else:
+                    raise
             msg = (
                 res.get("mensagem")
                 or res.get("mensagemTecnica")
@@ -302,6 +319,38 @@ class FleetVehicleInspection(models.Model):
                 "message": err_msg,
                 "protocol": "",
             }
+
+    def action_retry_senatran_driver_indication(self):
+        """Botão para cadastrar automaticamente o Webhook no Autorizador e-Frotas e reenviar a indicação do condutor."""
+        self.ensure_one()
+        driver_partner = self.inspected_by or (
+            self.rent_id.tenant_id if self.rent_id else False
+        )
+        if not driver_partner:
+            raise UserError(
+                _("Informe o locatário (Inspecionado por) antes de indicar no SENATRAN.")
+            )
+        self._register_driver_in_erp(driver_partner)
+        try:
+            config = self.vehicle_id.sudo()._get_efrotas_config()
+            config.sudo().ensure_webhook_and_events_registered()
+        except Exception as wh_exc:
+            _logger.warning("Aviso ao garantir webhook antes da indicação: %s", wh_exc)
+
+        res = self._register_driver_in_senatran(driver_partner)
+        if self.rent_id and res.get("protocol"):
+            self.rent_id.sudo().write({"driver_reg_protocol": res["protocol"]})
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": _("SENATRAN e-Frotas"),
+                "message": res.get("message") or _("Processado"),
+                "type": "success" if res.get("success") else "warning",
+                "sticky": True,
+                "next": {"type": "ir.actions.client", "tag": "reload"},
+            },
+        }
 
     def action_confirm_with_signed_report(
         self, signed_pdf_b64, filename=None, signer_info=None

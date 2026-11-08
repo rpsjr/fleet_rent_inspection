@@ -34,6 +34,14 @@
                         <group string="Registro de Condutor (ERP / SENATRAN)">
                             <field name="senatran_driver_indicated" />
                             <field name="senatran_status_message" />
+                            <button
+                                name="action_retry_senatran_driver_indication"
+                                string="Cadastrar Webhook e Indicar Condutor no SENATRAN"
+                                type="object"
+                                class="btn-primary"
+                                icon="fa-refresh"
+                                colspan="2"
+                            />
                         </group>
                     </group>
                 </page>
